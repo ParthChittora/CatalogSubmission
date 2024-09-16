@@ -1,5 +1,6 @@
 # CatalogSubmission
-# * RUN THE ALTERNATING INDEX.HTML IN CASE THE JAVA IS NOT ABLE TO IMPORT THE GSON FILE 
+# * RUN THE ALTERNATIVE SOLUTION INDEX.HTML IN CASE THE JAVA CODE IS NOT ABLE TO IMPORT THE GSON FILE
+
 
 This repo consists of the code for the given complex yet simple to solve assignment problem
 
@@ -76,7 +77,7 @@ At line:1 char:1
     + CategoryInfo          : ObjectNotFound: (mvn:String) [], CommandNotFoundException
     + FullyQualifiedErrorId : CommandNotFoundException
 
-
+# IN CASE THE GSON FILE IS NOT IMPORTED YOU CAN TRY OUT THESE COMMANDS ON THE BASH 
 Run mvn clean install:
 
 Go to your project directory and run the following command:
