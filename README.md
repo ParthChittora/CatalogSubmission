@@ -1,5 +1,5 @@
 # CatalogSubmission
-# * RUN THE INDEX.HTML 
+# * RUN THE ALTERNATING INDEX.HTML IN CASE THE JAVA IS NOT ABLE TO IMPORT THE GSON FILE 
 
 This repo consists of the code for the given complex yet simple to solve assignment problem
 
