@@ -2,7 +2,7 @@
 This repo consists of the code for the given complex yet simple to solve assignment problem
 
 
-//** README Is Made with the help of ai, its hard to write all this on my own :)**
+** README Is Made with the help of ai, its hard to write all this on my own :)**
 
 
 
