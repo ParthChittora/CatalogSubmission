@@ -1,10 +1,11 @@
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.HashMap;
+import java.util.Map;
+
 import com.google.gson.Gson;
 import java.math.BigInteger;
-import java.util.Map;
-import java.util.HashMap;
-
-
-
 
 public class ShamirSecretSharing {
     public static BigInteger reconstructSecret1(Map<Integer, BigInteger> shares, int k) {
@@ -46,7 +47,6 @@ public class ShamirSecretSharing {
         System.out.println("Total shares (n): " + n);
         System.out.println("Threshold (k): " + k);
 
-  
         for (String key : data.keySet()) {
             if (key.equals("keys")) continue; // Skip the "keys" entry
             Map<String, String> shareData = (Map<String, String>) data.get(key);
@@ -61,8 +61,23 @@ public class ShamirSecretSharing {
     }
 
     public static BigInteger reconstructSecret(Map<Integer, BigInteger> shares, int k) {
-        return reconstructSecret1(shares,k);
+        return reconstructSecret1(shares, k);
     }
 
+    public static void processFile(String filePath) {
+        try {
+            String jsonInput = new String(Files.readAllBytes(Paths.get(filePath)));
+            Map<Integer, BigInteger> shares = parseInput(jsonInput);
+            int k = ((Map<String, Object>) new Gson().fromJson(jsonInput, Map.class).get("keys")).get("k");
+            BigInteger secret = reconstructSecret(shares, k.intValue());
 
+            System.out.println("Constant term (Secret): " + secret);
+        } catch (IOException e) {
+            System.err.println("Error: Invalid JSON or processing error.");
+        }
+    }
+
+    public static void main(String[] args) {
+        processFile("your_json_file.json");
+    }
 }
