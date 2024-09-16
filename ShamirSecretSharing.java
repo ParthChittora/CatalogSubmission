@@ -25,7 +25,6 @@ public class ShamirSecretSharing {
                 }
             }
 
-            // Use the modular inverse of the denominator
             BigInteger lagrangeTerm = yi.multiply(numerator).multiply(denominator.modInverse(BigInteger.valueOf(256)));
             secret = secret.add(lagrangeTerm).mod(BigInteger.valueOf(256)); // assuming modulo 256 for byte representation
         }
@@ -47,7 +46,7 @@ public class ShamirSecretSharing {
         System.out.println("Total shares (n): " + n);
         System.out.println("Threshold (k): " + k);
 
-        // Extract the shares and convert them into BigInteger
+  
         for (String key : data.keySet()) {
             if (key.equals("keys")) continue; // Skip the "keys" entry
             Map<String, String> shareData = (Map<String, String>) data.get(key);
