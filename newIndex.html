@@ -1,0 +1,133 @@
+    // Convert all points to base 10
+    const convertedPoints = Object.entries(points).map(([x, { base, value }]) => ({
+        x: parseInt(x),
+        y: parseInt(value, parseInt(base))
+    }));
+
+    // Generate all possible combinations of k points
+    function* combinations(array, k) {
+        if (k === 1) {
+            for (const item of array) {
+                yield [item];
+            }
+        } else {
+            for (let i = 0; i <= array.length - k; i++) {
+                const head = array[i];
+                for (const tail of combinations(array.slice(i + 1), k - 1)) {
+                    yield [head, ...tail];
+                }
+            }
+        }
+    }
+
+    // Gaussian elimination to solve the system of linear equations
+    function solveLinearSystem(matrix, vector) {
+        const n = matrix.length;
+        for (let i = 0; i < n; i++) {
+            // Find pivot
+            let maxElement = Math.abs(matrix[i][i]);
+            let maxRow = i;
+            for (let k = i + 1; k < n; k++) {
+                if (Math.abs(matrix[k][i]) > maxElement) {
+                    maxElement = Math.abs(matrix[k][i]);
+                    maxRow = k;
+                }
+            }
+
+            // Swap maximum row with current row
+            [matrix[i], matrix[maxRow]] = [matrix[maxRow], matrix[i]];
+            [vector[i], vector[maxRow]] = [vector[maxRow], vector[i]];
+
+            // Make all rows below this one 0 in current column
+            for (let k = i + 1; k < n; k++) {
+                const c = -matrix[k][i] / matrix[i][i];
+                for (let j = i; j < n; j++) {
+                    if (i === j) {
+                        matrix[k][j] = 0;
+                    } else {
+                        matrix[k][j] += c * matrix[i][j];
+                    }
+                }
+                vector[k] += c * vector[i];
+            }
+        }
+
+        // Solve equation Ax=b using back substitution
+        const x = new Array(n).fill(0);
+        for (let i = n - 1; i >= 0; i--) {
+            x[i] = vector[i] / matrix[i][i];
+            for (let k = i - 1; k >= 0; k--) {
+                vector[k] -= matrix[k][i] * x[i];
+            }
+        }
+        return x;
+    }
+
+    let correctCombination = null;
+    let constantTerm = null;
+
+    for (const combo of combinations(convertedPoints, k)) {
+        const matrix = combo.map(point => 
+            Array.from({length: k}, (_, i) => Math.pow(point.x, i))
+        );
+        const vector = combo.map(point => point.y);
+
+        try {
+            const solution = solveLinearSystem(matrix, vector);
+            constantTerm = Math.round(solution[0]);
+            
+            // Verify the solution against all points
+            const incorrect = convertedPoints.filter(point => {
+                const calculated = solution.reduce((sum, coeff, index) => 
+                    sum + coeff * Math.pow(point.x, index), 0
+                );
+                return Math.abs(calculated - point.y) > 1e-6;
+            });
+
+            if (incorrect.length <= 3) {
+                correctCombination = combo;
+                return {
+                    incorrectRoots: incorrect.map(p => p.x),
+                    constantTerm: constantTerm
+                };
+            }
+        } catch (error) {
+            // Singular matrix or other error, skip this combination
+            continue;
+        }
+    }
+
+    return null; // No valid solution found
+}
+
+function processFile() {
+    const fileInput = document.getElementById('fileInput');
+    const outputDiv = document.getElementById('output');
+    
+    const file = fileInput.files[0];
+    if (!file) {
+        outputDiv.innerHTML = "Please select a file.";
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const input = JSON.parse(e.target.result);
+            const result = findIncorrectRoots(input);
+            
+            if (result) {
+                outputDiv.innerHTML = `
+                    <h2>Results:</h2>
+                    <p>Incorrect Roots: ${result.incorrectRoots.join(', ')}</p>
+                    <p>Constant Term: ${result.constantTerm}</p>
+                `;
+            } else {
+                outputDiv.innerHTML = "No valid solution found.";
+            }
+        } catch (error) {
+            outputDiv.innerHTML = Error processing file: ${error.message};
+        }
+    };
+    reader.readAsText(file);
+}
