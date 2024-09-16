@@ -1,102 +1,107 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shamir's Secret Sharing</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-        }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-        }
-        input[type="file"] {
-            display: block;
-            margin-bottom: 10px;
-        }
-        button {
-            padding: 8px 12px;
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
-        .output {
-            margin-top: 20px;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1>Shamir's Secret Sharing</h1>
-        <input type="file" id="fileInput">
-        <button onclick="processFile()">Upload and Process</button>
-        <div class="output" id="output"></div>
-    </div>
 
-    <script>
-        // Function to parse the JSON and extract points
-        function parseInput(data) {
-            const { n, k } = data.keys;
-            const points = [];
+function convertToDecimal(value, base) {
+    return parseInt(value, base);
+}
 
-            for (let i = 1; i <= n; i++) {
-                if (data[i]) {
-                    const x = parseInt(i);
-                    const y = parseInt(data[i].value, parseInt(data[i].base));
-                    points.push({ x, y });
+
+const points = {
+    "1": { base: 10, value: "28735619723837" },
+    "2": { base: 16, value: "1A228867F0CA" },
+    "3": { base: 12, value: "32811A4AA0B7B" },
+    "4": { base: 11, value: "917978721331A" },
+    "5": { base: 16, value: "1A22886782E1" },
+    "6": { base: 10, value: "28735619654702" },
+    "7": { base: 14, value: "71AB5070CC4B" },
+    "8": { base: 9, value: "122662581541670" },
+    "9": { base: 8, value: "642121030037605" }
+};
+
+const decimalPoints = {};
+for (let key in points) {
+    const { base, value } = points[key];
+    decimalPoints[key] = convertToDecimal(value, base);
+}
+
+function generateCombinations(arr, k) {
+    const results = [];
+    function generateComb(start, combo) {
+        if (combo.length === k) {
+            results.push(combo.slice());
+            return;
+        }
+        for (let i = start; i < arr.length; i++) {
+            combo.push(arr[i]);
+            generateComb(i + 1, combo);
+            combo.pop();
+        }
+    }
+    generateComb(0, []);
+    return results;
+}
+
+
+function lagrangeInterpolation(x, y) {
+    return function (x0) {
+        let total = 0;
+        for (let i = 0; i < x.length; i++) {
+            let xi = x[i];
+            let yi = y[i];
+            let li = 1;
+            for (let j = 0; j < x.length; j++) {
+                if (i !== j) {
+                    li *= (x0 - x[j]) / (xi - x[j]);
                 }
             }
-            return { n, k, points };
+            total += li * yi;
         }
+        return total;
+    };
+}
 
-        // Function to perform Lagrange interpolation and find the constant term 'c'
-        function lagrangeInterpolation(points, k) {
-            let secret = 0;
-            for (let i = 0; i < k; i++) {
-                let li = points[i].y;
-                for (let j = 0; j < k; j++) {
-                    if (i !== j) {
-                        li *= points[j].x / (points[j].x - points[i].x);
+function identifyIncorrectPoints(k) {
+    const keys = Object.keys(decimalPoints);
+    const xValues = keys.map(key => parseInt(key));
+    const yValues = keys.map(key => decimalPoints[key]);
+
+    let incorrectPoints = [];
+    let minError = Infinity;
+    
+    const combinations = generateCombinations(keys, k);
+
+    for (const combo of combinations) {
+        const xCombo = combo.map(key => parseInt(key));
+        const yCombo = combo.map(key => decimalPoints[key]);
+
+        try {
+            const interpolate = lagrangeInterpolation(xCombo, yCombo);
+            let totalError = 0;
+            let currentIncorrectPoints = [];
+
+            for (let i = 0; i < keys.length; i++) {
+                if (!combo.includes(keys[i])) {
+                    const xTest = parseInt(keys[i]);
+                    const yTest = decimalPoints[keys[i]];
+                    const yPred = interpolate(xTest);
+                    const error = Math.abs(yTest - yPred);
+                    totalError += error;
+                    if (error > 1e-6) { // Threshold for considering a point incorrect
+                        currentIncorrectPoints.push(keys[i]);
                     }
                 }
-                secret += li;
             }
-            return Math.round(secret);
-        }
 
-        // Function to process the uploaded file and compute the result
-        function processFile() {
-            const fileInput = document.getElementById('fileInput').files[0];
-            const outputDiv = document.getElementById('output');
-
-            if (fileInput) {
-                const reader = new FileReader();
-                reader.onload = function (event) {
-                    const jsonInput = event.target.result;
-                    try {
-                        const data = JSON.parse(jsonInput);
-                        const { n, k, points } = parseInput(data);
-                        if (points.length < k) {
-                            outputDiv.innerHTML = <strong>Error:</strong> Not enough points provided.;
-                            return;
-                        }
-                        const result = lagrangeInterpolation(points, k);
-
-                        // Display the result
-                        outputDiv.innerHTML = <strong>Constant term (Secret):</strong> ${result};
-                    } catch (error) {
-                        outputDiv.innerHTML = <strong>Error:</strong> Invalid JSON or processing error.;
-                    }
-                };
-                reader.readAsText(fileInput);
-            } else {
-                outputDiv.innerHTML = <strong>Error:</strong> No file selected.;
+            if (totalError < minError) {
+                minError = totalError;
+                incorrectPoints = currentIncorrectPoints;
             }
+        } catch (e) {
+            // Handle errors in interpolation
         }
-    </script>
-</body>
-</html>
+    }
+
+    return incorrectPoints;
+}
+
+const k = 6; // Number of correct points required
+const incorrectPoints = identifyIncorrectPoints(k);
+console.log(`The incorrect points are: ${incorrectPoints}`);
